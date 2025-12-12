@@ -120,51 +120,8 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/${OUT_DIR_NAME})
     execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${CMAKE_CURRENT_BINARY_DIR}/${OUT_NAME})
 endif()
 
-set(_UNPACK_CMAKE "${CMAKE_BINARY_DIR}/_unpack_wheel.cmake")
-file(WRITE "${_UNPACK_CMAKE}" [=[
-cmake_minimum_required(VERSION 3.20)
-if(NOT DEFINED DIST_DIR OR NOT DEFINED OUT_DIR)
-  message(FATAL_ERROR "Need -D DIST_DIR and -D OUT_DIR")
-endif()
-
-file(GLOB wheels LIST_DIRECTORIES FALSE "${DIST_DIR}/*.whl")
-list(LENGTH wheels count)
-if(count EQUAL 0)
-  message(FATAL_ERROR "No .whl found in ${DIST_DIR}")
-elseif(count GREATER 1)
-  message(FATAL_ERROR "More than one .whl found in ${DIST_DIR} (this script expects exactly one)")
-endif()
-
-set(wheel "${wheels}")
-
-file(MAKE_DIRECTORY "${OUT_DIR}")
-
-execute_process(
-  COMMAND "${CMAKE_COMMAND}" -E tar xvf "${wheel}" --format=zip
-  WORKING_DIRECTORY "${OUT_DIR}"
-  RESULT_VARIABLE rv
-)
-if(NOT rv EQUAL 0)
-  message(FATAL_ERROR "Unpack failed (code ${rv}) for: ${wheel}")
-endif()
-
-message(STATUS "Unpacked: ${wheel} -> ${OUT_DIR}")
-]=])
-
-add_custom_target(build_wheel ALL
-    COMMAND "${PYTHON_EXECUTABLE}" -m pip install --isolated -U pip build setuptools wheel "narwhals>=1.15.1" --upgrade build
-    COMMAND "${PYTHON_EXECUTABLE}" -m build --wheel --outdir ${CMAKE_CURRENT_BINARY_DIR}/out ${CMAKE_CURRENT_BINARY_DIR}/${OUT_DIR_NAME}
-    COMMAND "${CMAKE_COMMAND}"
-            -D DIST_DIR=${CMAKE_CURRENT_BINARY_DIR}/out/
-            -D OUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/unpack/
-            -P "${_UNPACK_CMAKE}"
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${OUT_DIR_NAME}
-    VERBATIM
-)
-
 if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL)
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/unpack/${PROJECT_NAME} DESTINATION ${INSTALL_LIB_DIR})
-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/unpack/${OUT_DIR_NAME}.dist-info DESTINATION ${INSTALL_LIB_DIR})
+    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${OUT_DIR_NAME}/src/ DESTINATION ${INSTALL_LIB_DIR})
 endif()
 
 # Archiving ====================================================================
